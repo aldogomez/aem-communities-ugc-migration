@@ -314,7 +314,7 @@ public class ImportFileUploadServlet extends GenericUGCImporter {
                                     resource = resolver.getResource(resName.substring(0, resName.lastIndexOf("/")));
                                 }
                                 try {
-                                    importFile(jsonParser, resource, resolver, request);
+                                    importFile(jsonParser, resource, resolver, request, false);
                                     toDelete.add(file);
                                 } catch (final Exception e) {
                                     // add the file name to our response ONLY if we failed to import it
@@ -454,7 +454,7 @@ public class ImportFileUploadServlet extends GenericUGCImporter {
                     final JsonParser jsonParser = new JsonFactory().createParser(inputStream);
                     jsonParser.nextToken(); // get the first token
 
-                    importFile(jsonParser, resource, serviceUserResolver, request);
+                    importFile(jsonParser, resource, serviceUserResolver, request, false);
                     deleteResource(fileResource);
                     return;
                 }
