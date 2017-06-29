@@ -44,6 +44,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.ModifiableValueMap;
 import org.apache.sling.api.resource.ModifyingResourceProvider;
 import org.apache.sling.api.resource.PersistenceException;
@@ -103,6 +104,10 @@ public class UGCImportHelper {
 
     private SocialResourceProvider resProvider;
 
+    private SlingHttpServletRequest request;
+
+    private boolean importImages = false;
+
     /**
      * These values ought to come from com.adobe.cq.social.calendar.CalendarConstants, but that class isn't in the
      * uberjar, so I'll define the constants here instead.
@@ -151,6 +156,16 @@ public class UGCImportHelper {
     public void setSocialUtils(final SocialUtils socialUtils) {
         if (this.socialUtils == null)
             this.socialUtils = socialUtils;
+    }
+
+    public void setRequest(final SlingHttpServletRequest request) {
+        if (this.request == null) {
+            this.request = request;
+        }
+    }
+
+    public void setImportImages(final boolean importImages) {
+        this.importImages = importImages;
     }
 
     public Resource extractResource(final JsonParser parser, final SocialResourceProvider provider,
@@ -474,6 +489,7 @@ public class UGCImportHelper {
         }
         final Map<String, Object> properties = new HashMap<String, Object>();
         properties.put("social:key", jsonParser.getCurrentName());
+        properties.put("contextPath", request.getContextPath());
         Resource post = null;
         jsonParser.nextToken();
         if (jsonParser.getCurrentToken().equals(JsonToken.START_OBJECT)) {
@@ -494,7 +510,7 @@ public class UGCImportHelper {
                         if (value.equals("true") || value.equals("false")) {
                             properties.put(label, jsonParser.getValueAsBoolean());
                         } else {
-                            final String decodedValue = URLDecoder.decode(value, "UTF-8");
+                            String decodedValue = URLDecoder.decode(value, "UTF-8");
                             if (label.equals("language")) {
                                 properties.put("mtlanguage", decodedValue);
                             } else {
@@ -502,6 +518,9 @@ public class UGCImportHelper {
                                 if (label.equals("userIdentifier")) {
                                     author = decodedValue;
                                 } else if (label.equals("jcr:description")) {
+                                    if (importImages) {
+                                        decodedValue = ImageUploadUtil.importImage(resolver, decodedValue);
+                                    }
                                     properties.put("message", decodedValue);
                                 }
                             }

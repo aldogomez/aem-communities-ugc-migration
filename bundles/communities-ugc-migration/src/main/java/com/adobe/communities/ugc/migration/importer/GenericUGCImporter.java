@@ -111,6 +111,9 @@ public class GenericUGCImporter extends SlingAllMethodsServlet {
         if (fileRequestParameters != null && fileRequestParameters.length > 0
                 && !fileRequestParameters[0].isFormField()) {
 
+            String importImagesStr = (request.getRequestParameter("importImages") != null) ? request.getRequestParameter("importImages").getString() : null;
+            final boolean importImages = "true".equals(importImagesStr);
+
             if (fileRequestParameters[0].getFileName().endsWith(".json")) {
                 // if upload is a single json file...
 
@@ -125,7 +128,7 @@ public class GenericUGCImporter extends SlingAllMethodsServlet {
                 final JsonParser jsonParser = new JsonFactory().createParser(inputStream);
                 jsonParser.nextToken(); // get the first token
 
-                importFile(jsonParser, resource, resolver);
+                importFile(jsonParser, resource, resolver, request, importImages);
             } else if (fileRequestParameters[0].getFileName().endsWith(".zip")) {
                 ZipInputStream zipInputStream;
                 try {
@@ -149,7 +152,7 @@ public class GenericUGCImporter extends SlingAllMethodsServlet {
 
                         final JsonParser jsonParser = new JsonFactory().createParser(zipInputStream);
                         jsonParser.nextToken(); // get the first token
-                        importFile(jsonParser, resource, resolver);
+                        importFile(jsonParser, resource, resolver, request, importImages);
                         zipInputStream.closeEntry();
                         zipEntry = zipInputStream.getNextEntry();
                         counter++;
@@ -175,6 +178,9 @@ public class GenericUGCImporter extends SlingAllMethodsServlet {
 
         UGCImportHelper.checkUserPrivileges(resolver, rrf);
 
+        String importImagesStr = (request.getRequestParameter("importImages") != null) ? request.getRequestParameter("importImages").getString() : null;
+        final boolean importImages = "true".equals(importImagesStr);
+
         final String path = request.getRequestParameter("path").getString();
         final Resource resource = resolver.getResource(path);
         if (resource == null) {
@@ -199,7 +205,7 @@ public class GenericUGCImporter extends SlingAllMethodsServlet {
                     final JsonParser jsonParser = new JsonFactory().createParser(inputStream);
                     jsonParser.nextToken(); // get the first token
 
-                    importFile(jsonParser, resource, resolver);
+                    importFile(jsonParser, resource, resolver, request, importImages);
                     ImportFileUploadServlet.deleteResource(fileResource);
                     return;
                 }
@@ -215,11 +221,14 @@ public class GenericUGCImporter extends SlingAllMethodsServlet {
      * @throws ServletException
      * @throws IOException
      */
-    protected void importFile(final JsonParser jsonParser, final Resource resource, final ResourceResolver resolver)
+    protected void importFile(final JsonParser jsonParser, final Resource resource, final ResourceResolver resolver,
+                              final SlingHttpServletRequest request, final boolean importImages)
             throws ServletException, IOException {
         final UGCImportHelper importHelper = new UGCImportHelper();
         JsonToken token1 = jsonParser.getCurrentToken();
         importHelper.setSocialUtils(socialUtils);
+        importHelper.setRequest(request);
+        importHelper.setImportImages(importImages);
         if (token1.equals(JsonToken.START_OBJECT)) {
             jsonParser.nextToken();
             if (jsonParser.getCurrentName().equals(ContentTypeDefinitions.LABEL_CONTENT_TYPE)) {
