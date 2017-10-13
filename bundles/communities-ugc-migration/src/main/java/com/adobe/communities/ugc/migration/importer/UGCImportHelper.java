@@ -66,15 +66,7 @@ import java.io.OutputStream;
 import java.net.URLDecoder;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.TimeZone;
+import java.util.*;
 
 public class UGCImportHelper {
     private static final Logger LOG = LoggerFactory.getLogger(UGCImportHelper.class);
@@ -908,9 +900,24 @@ public class UGCImportHelper {
 
     public static void checkUserPrivileges(final ResourceResolver resolver, final ResourceResolverFactory rrf)
             throws ServletException {
-
         final User user = resolver.adaptTo(User.class);
-        if (!user.isAdmin()) {
+        boolean isAdmin = user.isAdmin();
+        boolean isCommunityAdmin = false;
+
+        try {
+            Iterator<Group> groupItr = user.memberOf();
+            while(groupItr.hasNext()) {
+                Group group = groupItr.next();
+                if (group.getID().equals("community-administrators")) {
+                    isCommunityAdmin = true;
+                    break;
+                }
+            }
+        } catch (RepositoryException e) {
+            throw new ServletException("Couldn't access groups" , e);
+        }
+
+        if (!isAdmin && !isCommunityAdmin) {
             throw new ServletException("Insufficient access");
         }
     }
