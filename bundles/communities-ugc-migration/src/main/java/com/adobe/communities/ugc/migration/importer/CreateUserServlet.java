@@ -94,7 +94,10 @@ public class CreateUserServlet extends SlingAllMethodsServlet {
             Resource profile = resource.getChild("profile");
             if (profile == null) {
                 Node node = resource.adaptTo(Node.class);
-                node.addNode("profile", "nt:unstructured");
+                Node profileNode = node.addNode("profile", "nt:unstructured");
+                profileNode.setProperty("sling:resourceType", "cq/security/components/profile");
+                profileNode.addMixin("mix:title");
+                profileNode.addMixin("granite:Ranking");
                 resolver.commit();
             }
         }
