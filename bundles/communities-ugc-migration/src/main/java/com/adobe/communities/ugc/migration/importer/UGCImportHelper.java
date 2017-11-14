@@ -781,8 +781,10 @@ public class UGCImportHelper {
             if (label.equals("filename")) {
                 filename = URLDecoder.decode(jsonParser.getValueAsString(), "UTF-8"); //decoded
                 String name = jsonParser.getValueAsString(); //encoded
+                String decoded = URLDecoder.decode(name, "UTF-8");
+                String encodedName = URLEncoder.encode(decoded, "UTF-8");
                 if (decodeFilename == false) {
-                    filename = name;
+                    filename = encodedName;
                 }
             } else if (label.equals("jcr:mimeType")) {
                 mimeType = jsonParser.getValueAsString();
