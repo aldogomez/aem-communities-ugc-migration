@@ -225,8 +225,11 @@ public class GenericUGCImporter extends SlingAllMethodsServlet {
         final String importImagesStr = (request.getRequestParameter("importImages") != null) ? request.getRequestParameter("importImages").getString() : null;
         final String importImagesSrc = (request.getRequestParameter("importImagesSrc") != null) ? request.getRequestParameter("importImagesSrc").getString() : null;
         final boolean importImages = "true".equals(importImagesStr);
+        final String decodeFilenamesStr = (request.getRequestParameter("decodeFilenames") != null) ? request.getRequestParameter("decodeFilenames").getString() : null;
+        final boolean decodeFilenames = "true".equals(decodeFilenamesStr);
         importHelper.setImportImages(importImages);
         importHelper.setImportImagesSrc(importImagesSrc);
+        importHelper.setDecodeFilenames(decodeFilenames);
         if (token1.equals(JsonToken.START_OBJECT)) {
             jsonParser.nextToken();
             if (jsonParser.getCurrentName().equals(ContentTypeDefinitions.LABEL_CONTENT_TYPE)) {
