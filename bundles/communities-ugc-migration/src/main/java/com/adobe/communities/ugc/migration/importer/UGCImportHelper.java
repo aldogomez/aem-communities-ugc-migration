@@ -40,18 +40,12 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.felix.scr.annotations.Reference;
-import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.vault.util.MimeTypes;
 import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.resource.ModifiableValueMap;
-import org.apache.sling.api.resource.ModifyingResourceProvider;
-import org.apache.sling.api.resource.PersistenceException;
-import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ResourceResolver;
-import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.api.resource.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,13 +53,9 @@ import javax.activation.DataSource;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.servlet.ServletException;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.URLDecoder;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.net.URLEncoder;
 import java.util.*;
 
 public class UGCImportHelper {
@@ -100,6 +90,8 @@ public class UGCImportHelper {
     private SlingHttpServletRequest request;
 
     private boolean importImages = false;
+
+    private boolean decodeFilenames = true;
 
     private String importImagesSrc = null;
     /**
@@ -164,6 +156,10 @@ public class UGCImportHelper {
 
     public void setImportImagesSrc(final String importImagesSrc) {
         this.importImagesSrc = importImagesSrc;
+    }
+
+    public void setDecodeFilenames(final boolean decodeFilenames) {
+        this.decodeFilenames = decodeFilenames;
     }
 
     public Resource extractResource(final JsonParser parser, final SocialResourceProvider provider,
@@ -525,7 +521,7 @@ public class UGCImportHelper {
                         }
                     }
                 } else if (label.equals(ContentTypeDefinitions.LABEL_ATTACHMENTS)) {
-                    attachments = getAttachments(jsonParser);
+                    attachments = getAttachments(jsonParser, decodeFilenames);
                 } else if (label.equals(ContentTypeDefinitions.LABEL_FLAGS)) {
                     jsonParser.skipChildren(); // TODO - implement importer for flags
                 } else if (label.equals(ContentTypeDefinitions.LABEL_REPLIES)
@@ -727,9 +723,9 @@ public class UGCImportHelper {
                     jsonParser.nextToken();
                 }
             } else if (field.equals(ContentTypeDefinitions.LABEL_ATTACHMENTS)) {
-                getAttachments(jsonParser, attachments);
+                getAttachments(jsonParser, attachments, decodeFilenames);
             } else if (field.equals(CalendarRequestConstants.COVER_IMAGE_PARAM)) {
-                final FileDataSource attachment = getAttachment(jsonParser);
+                final FileDataSource attachment = getAttachment(jsonParser, decodeFilenames);
                 if (null != attachment) {
                     eventParams.put(CalendarRequestConstants.COVER_IMAGE_PARAM, attachment);
                 }
@@ -765,14 +761,14 @@ public class UGCImportHelper {
         }
     }
 
-    protected static List<DataSource> getAttachments(final JsonParser jsonParser) throws IOException {
+    protected static List<DataSource> getAttachments(final JsonParser jsonParser, final boolean decodeFilename) throws IOException {
         // an attachment has only 3 fields - jcr:data, filename, jcr:mimeType
         List<DataSource> attachments = new ArrayList<DataSource>();
-        getAttachments(jsonParser, attachments);
+        getAttachments(jsonParser, attachments, decodeFilename);
         return attachments;
     }
 
-    protected static FileDataSource getAttachment(final JsonParser jsonParser) throws IOException {
+    protected static FileDataSource getAttachment(final JsonParser jsonParser, final boolean decodeFilename) throws IOException {
 
         String filename = null;
         String mimeType = null;
@@ -783,7 +779,11 @@ public class UGCImportHelper {
             final String label = jsonParser.getCurrentName();
             jsonParser.nextToken();
             if (label.equals("filename")) {
-                filename = URLDecoder.decode(jsonParser.getValueAsString(), "UTF-8");
+                filename = URLDecoder.decode(jsonParser.getValueAsString(), "UTF-8"); //decoded
+                String name = jsonParser.getValueAsString(); //encoded
+                if (decodeFilename == false) {
+                    filename = name;
+                }
             } else if (label.equals("jcr:mimeType")) {
                 mimeType = jsonParser.getValueAsString();
             } else if (label.equals("jcr:data")) {
@@ -800,11 +800,11 @@ public class UGCImportHelper {
             return null;
         }
     }
-    protected static void getAttachments(final JsonParser jsonParser, final List attachments) throws IOException {
+    protected static void getAttachments(final JsonParser jsonParser, final List attachments, boolean decodeFilename) throws IOException {
 
         JsonToken token = jsonParser.nextToken(); // skip START_ARRAY token
         while (token.equals(JsonToken.START_OBJECT)) {
-            final FileDataSource attachment = getAttachment(jsonParser);
+            final FileDataSource attachment = getAttachment(jsonParser, decodeFilename);
             if (null != attachment) {
                 attachments.add(attachment);
             }

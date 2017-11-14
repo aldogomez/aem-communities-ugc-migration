@@ -235,7 +235,7 @@ public class MessagesImportServlet extends SlingAllMethodsServlet {
                             messageModifier.put("recipientDetails", recipientModifiers);
                         }
                     } else if (fieldName.equals(ContentTypeDefinitions.LABEL_ATTACHMENTS)) {
-                        UGCImportHelper.getAttachments(jsonParser, attachments);
+                        UGCImportHelper.getAttachments(jsonParser, attachments, true);
                     } else {
                         props.put(fieldName, URLDecoder.decode(jsonParser.getValueAsString(), "UTF-8"));
                     }
